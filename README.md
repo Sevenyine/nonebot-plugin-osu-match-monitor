@@ -40,17 +40,17 @@ _✨ NoneBot osu! 比赛监控 ✨_
 <details>
 <summary>pip</summary>
 
-    pip install nonebot-plugin-template
+    pip install nonebot-plugin-osu-match-monitor
 </details>
 <details>
 <summary>pdm</summary>
 
-    pdm add nonebot-plugin-template
+    pdm add nonebot-plugin-osu-match-monitor
 </details>
 <details>
 <summary>poetry</summary>
 
-    poetry add nonebot-plugin-template
+    poetry add nonebot-plugin-osu-match-monitor
 </details>
 </details>
 
@@ -72,12 +72,12 @@ _✨ NoneBot osu! 比赛监控 ✨_
 ## 使用
 ### 指令表
 
-在使用时，请自行添加对应的指令前缀。
+在使用时，请自行添加对应的指令前缀。尖括号内的参数为必填。
 
 | 指令 | 权限 | 需要@ | 范围 | 说明 |
 |:-----:|:----:|:----:|:----:|:----:|
-| osu match monitor <id> | 群员 | 否 | 群聊+私聊 | 开始监控比赛 |
-| osu match stop <id> | 群员 | 否 | 群聊+私聊 | 停止监控比赛 |
+| osu match monitor \<id\> | 群员 | 否 | 群聊+私聊 | 开始监控比赛 |
+| osu match stop \<id\> | 群员 | 否 | 群聊+私聊 | 停止监控比赛 |
 ### 效果图
 
 ![example.jpg](https://github.com/Sevenyine/nonebot-plugin-osu-match-monitor/blob/resources/example.JPG?raw=true)
