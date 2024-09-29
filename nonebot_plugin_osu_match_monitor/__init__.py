@@ -18,6 +18,8 @@ __plugin_meta__ = PluginMetadata(
 .osu match monitor <房间ID>  开始监控指定房间
 .osu match stopmonitor <房间ID>  停止监控指定房间
 """,
+    type="application",
+    homepage="https://github.com/Sevenyine/nonebot-plugin-osu-match-monitor",
 )
 
 API_KEY = api_key
