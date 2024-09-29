@@ -258,7 +258,9 @@ async def format_scores(scores: List[Dict], play_mode_code: str) -> str:
     score_messages = []
     for score in scores:
         slot = score.get("slot", "未知")
-        team = get_team(score.get("team", "0"))
+        team = score.get("team", "0")
+        team_display = f"[TEAM {get_team(team)}]" if team != "0" else ""
+
         user_id = score.get("user_id", "未知")
         user_info = await get_user_info(user_id)
         username = user_info.get("username", "未知用户")
@@ -286,7 +288,7 @@ async def format_scores(scores: List[Dict], play_mode_code: str) -> str:
         pass_message = "PASS" if pass_status == "1" else "FAIL"
 
         score_messages.append(
-            f"玩家：{user_display}\n"
+            f"[{slot}]{team_display} 玩家：{user_display}\n"
             f"分数：{user_score}  Acc：{accuracy}%  连击：{combo_display}\n"
             f"300+：{countgeki}  300：{count300}  200：{countkatu}\n"
             f"100：{count100}  50：{count50}  MISS：{countmiss}\n"
