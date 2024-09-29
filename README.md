@@ -66,6 +66,7 @@ _✨ NoneBot osu! 比赛监控 ✨_
 ### 如何获取 osu! API Key？
 
 您需要注册一个 [osu!](https://osu.ppy.sh) 账号，随后打开[这个链接](https://osu.ppy.sh/home/account/edit#legacy-api)进行申请。
+
 ![api.png](https://github.com/Sevenyine/nonebot-plugin-osu-match-monitor/blob/resources/api.png?raw=true)
 
 ## 使用

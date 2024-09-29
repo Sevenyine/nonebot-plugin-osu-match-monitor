@@ -85,7 +85,7 @@ async def handle_monitor(bot: Bot, event: Event, args: Message = CommandArg()):
         logger.error(f"获取房间 {room_id} 信息失败")
 
 @stop_monitor.handle()
-async def handle_stop_monitor(bot: Bot, event: Event, args: Message = CommandArg()):
+async def handle_stop_monitor(args: Message = CommandArg()):
     room_id = args.extract_plain_text().strip()
     logger.debug(f"收到停止监控命令，房间ID：{room_id}")
     if room_id in monitoring_rooms:
