@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import httpx
 import logging
 from datetime import datetime, timedelta
@@ -28,14 +28,12 @@ API_URL_MATCH = "https://osu.ppy.sh/api/get_match"
 API_URL_USER = "https://osu.ppy.sh/api/get_user"
 API_URL_BEATMAP = "https://osu.ppy.sh/api/get_beatmaps"
 
-
 monitoring_rooms: Dict[str, Dict] = {}
-user_cache: Dict[str, Dict] = {} 
+user_cache: Dict[str, Dict] = {}
 beatmap_cache: Dict[str, Dict] = {}
 
 monitor = on_command("osu match monitor", aliases={"osumonitor"}, priority=5)
 stop_monitor = on_command("osu match stop", aliases={"osustopmonitor"}, priority=5)
-
 
 @monitor.handle()
 async def handle_monitor(bot: Bot, event: Event, args: Message = CommandArg()):
@@ -57,8 +55,7 @@ async def handle_monitor(bot: Bot, event: Event, args: Message = CommandArg()):
             await monitor.finish(f"房间 {room_id} 已关闭，无法监控。\n房间信息：\n{room_info}")
             logger.info(f"房间 {room_id} 已关闭，无法监控。")
         else:
-            await monitor.send(f"开始监控房间 {room_id}：\n{format_match_info(match_info['match'])}")
-            # 检查是否有正在进行的比赛
+            await monitor.send(f"开始监控：\n{format_match_info(match_info['match'])}")
             games = match_info.get('games', [])
             ongoing_game = None
             for game in games:
@@ -67,7 +64,7 @@ async def handle_monitor(bot: Bot, event: Event, args: Message = CommandArg()):
                     break
 
             if ongoing_game:
-                message = f"当前正在进行的比赛（Game ID: {ongoing_game['game_id']}）：\n"
+                message = f"当前正在进行的比赛（ID: {ongoing_game['game_id']}）：\n"
                 message += await format_game_info(ongoing_game)
                 await monitor.send(message)
                 beatmap_id = ongoing_game.get("beatmap_id", "")
@@ -107,6 +104,13 @@ async def monitor_room(bot: Bot, event: Event, room_id: str):
                     previous_match_info = new_match_info
                     monitoring_rooms[room_id] = new_match_info
                 else:
+                    # 检查房间是否关闭
+                    if new_match_info["match"].get("end_time") and not previous_match_info["match"].get("end_time"):
+                        await bot.send(event, f"房间 {room_id} 已关闭，停止监控。")
+                        monitoring_rooms.pop(room_id, None)
+                        logger.info(f"房间 {room_id} 已关闭，停止监控")
+                        break
+
                     if new_match_info["match"] != previous_match_info.get("match"):
                         await bot.send(event, f"房间 {room_id} 信息更新：\n{format_match_info(new_match_info['match'])}")
                         logger.info(f"房间 {room_id} 信息更新")
@@ -119,8 +123,7 @@ async def monitor_room(bot: Bot, event: Event, room_id: str):
                     for game_id, game in new_games_dict.items():
                         prev_game = previous_games_dict.get(game_id)
                         if not prev_game:
-                            # 比赛开始
-                            message = f"房间 {room_id} 的新比赛（Game ID: {game_id}）已开始！\n"
+                            message = f"房间 {room_id} 的新比赛（ID: {game_id}）已开始！\n"
                             message += await format_game_info(game)
                             await bot.send(event, message)
                             # 发送封面图片
@@ -129,21 +132,31 @@ async def monitor_room(bot: Bot, event: Event, room_id: str):
                                 cover_image = await get_beatmap_cover(beatmap_id)
                                 if cover_image:
                                     await bot.send(event, MessageSegment.image(cover_image))
-                            logger.info(f"房间 {room_id} 的新比赛（Game ID: {game_id}）已开始")
+                            logger.info(f"房间 {room_id} 的新比赛（ID: {game_id}）已开始")
                         elif game != prev_game:
                             if game["end_time"] and not prev_game.get("end_time"):
-                                # 输出成绩
-                                message = f"房间 {room_id} 的比赛（Game ID: {game_id}）已结束，比分如下：\n"
-                                message += await format_scores(game['scores'], game.get("play_mode", "0"))
-                                await bot.send(event, message)
-                                logger.info(f"房间 {room_id} 的比赛（Game ID: {game_id}）已结束")
-                                monitoring_rooms.pop(room_id, None)
-                                return
+                                # 比赛结束，输出成绩
+                                game_id = game.get('game_id', '未知')
+                                game_start_time = convert_to_utc8(game.get('start_time', '未知'))
+                                game_end_time = convert_to_utc8(game.get('end_time', '未知'))
+
+                                player_scores_message, summary_message = await format_scores(
+                                    game['scores'],
+                                    game.get("play_mode", "0"),
+                                    game.get("team_type", "0"),
+                                    game_id,
+                                    game_start_time,
+                                    game_end_time
+                                )
+
+                                await bot.send(event, player_scores_message)
+                                await bot.send(event, summary_message)
+                                logger.info(f"房间 {room_id} 的比赛（ID: {game_id}）已结束")
                             else:
-                                message = f"房间 {room_id} 的比赛（Game ID: {game_id}）有新的更新。\n"
+                                message = f"房间 {room_id} 的比赛（ID: {game_id}）有新的更新。\n"
                                 message += await format_game_info(game)
                                 await bot.send(event, message)
-                                logger.info(f"房间 {room_id} 的比赛（Game ID: {game_id}）有新的更新")
+                                logger.info(f"房间 {room_id} 的比赛（ID: {game_id}）有新的更新")
                     previous_match_info = new_match_info
                     monitoring_rooms[room_id] = new_match_info
             else:
@@ -254,8 +267,18 @@ async def format_game_info(game: Dict) -> str:
             f"队伍类型：{team_type}\n"
             f"Global Mods：{mods}\n")
 
-async def format_scores(scores: List[Dict], play_mode_code: str) -> str:
-    score_messages = []
+async def format_scores(
+    scores: List[Dict],
+    play_mode_code: str,
+    team_type: str,
+    game_id: str,
+    start_time: str,
+    end_time: str
+) -> Tuple[str, str]:
+    team_type = int(team_type)
+    team_scores = {}
+    individual_scores = []
+
     for score in scores:
         slot = score.get("slot", "未知")
         team = score.get("team", "0")
@@ -267,7 +290,7 @@ async def format_scores(scores: List[Dict], play_mode_code: str) -> str:
         country_code = user_info.get("country", "")
         user_display = f"[@{country_code}] {username} ({user_id})"
 
-        user_score = score.get("score", "0")
+        user_score = int(score.get("score", "0"))
         maxcombo = score.get("maxcombo", "0")
         countmiss = score.get("countmiss", "0")
         count50 = score.get("count50", "0")
@@ -287,14 +310,112 @@ async def format_scores(scores: List[Dict], play_mode_code: str) -> str:
         combo_display = f"{maxcombo}" + (" (FC)" if perfect == "1" else "")
         pass_message = "PASS" if pass_status == "1" else "FAIL"
 
-        score_messages.append(
-            f"[{slot}]{team_display} 玩家：{user_display}\n"
-            f"分数：{user_score}  Acc：{accuracy}%  连击：{combo_display}\n"
-            f"300+：{countgeki}  300：{count300}  200：{countkatu}\n"
-            f"100：{count100}  50：{count50}  MISS：{countmiss}\n"
-            f"{pass_message}  Mods：{enabled_mods}\n"
+        # 累计团队得分
+        if team_type == 2:
+            team_name = get_team(team)
+            team_scores[team_name] = team_scores.get(team_name, 0) + user_score
+
+        # 记录个人得分
+        individual_scores.append({
+            "slot": slot,
+            "team_display": team_display,
+            "user_display": user_display,
+            "user_score": user_score,
+            "accuracy": accuracy,
+            "combo_display": combo_display,
+            "countgeki": countgeki,
+            "count300": count300,
+            "countkatu": countkatu,
+            "count100": count100,
+            "count50": count50,
+            "countmiss": countmiss,
+            "pass_message": pass_message,
+            "enabled_mods": enabled_mods,
+        })
+
+    # 按得分从高到低排序
+    individual_scores.sort(key=lambda x: x['user_score'], reverse=True)
+
+    # 分配排名
+    for idx, player_score in enumerate(individual_scores, start=1):
+        player_score['rank'] = idx
+
+    # 构建玩家成绩信息
+    score_messages = []
+    for player_score in individual_scores:
+        score_message = (
+            f"[{player_score['slot']}]"
+            f"{player_score['team_display']} 玩家：{player_score['user_display']}\n"
+            f"分数：{player_score['user_score']} (#{player_score['rank']})  Acc：{player_score['accuracy']}%\n"
+            f"300+：{player_score['countgeki']}  300：{player_score['count300']}  200：{player_score['countkatu']}\n"
+            f"100：{player_score['count100']}  50：{player_score['count50']}  MISS：{player_score['countmiss']}\n"
+            f"{player_score['pass_message']}  连击：{player_score['combo_display']}\n"
+            f"Mods：{player_score['enabled_mods']}\n"
         )
-    return "\n".join(score_messages)
+        score_messages.append(score_message)
+
+    player_scores_message = "\n".join(score_messages)
+
+    summary_message = ""
+
+    # 团队模式
+    if team_type == 2:
+        if team_scores:
+            # 比较团队得分
+            teams = list(team_scores.keys())
+            if len(teams) == 2:
+                team1, team2 = teams
+                score1, score2 = team_scores[team1], team_scores[team2]
+                if score1 > score2:
+                    winning_team = team1
+                    score_diff = score1 - score2
+                elif score2 > score1:
+                    winning_team = team2
+                    score_diff = score2 - score1
+                else:
+                    winning_team = "平局"
+                    score_diff = 0
+                if winning_team != "平局":
+                    summary_message += (
+                        f"本场比赛 {winning_team} 队胜利，分差：{score_diff}。\n"
+                        f"游戏ID：{game_id}\n"
+                        f"游戏开始时间：{start_time}\n"
+                        f"游戏结束时间：{end_time}\n"
+                    )
+                else:
+                    summary_message += (
+                        f"比赛平局！\n"
+                        f"游戏ID：{game_id}\n"
+                        f"游戏开始时间：{start_time}\n"
+                        f"游戏结束时间：{end_time}\n"
+                    )
+            else:
+                summary_message += "团队数量异常，无法计算胜负。\n"
+        else:
+            summary_message += "无法获取团队得分信息。\n"
+    # 个人模式
+    elif team_type == 0:
+        if individual_scores:
+            top_player = individual_scores[0]
+            if len(individual_scores) > 1:
+                score_diff = top_player["user_score"] - individual_scores[1]["user_score"]
+                summary_message += (
+                    f"本场比赛 {top_player['user_display']} 胜利，分差：{score_diff}。\n"
+                    f"游戏ID：{game_id}\n"
+                    f"游戏开始时间：{start_time}\n"
+                    f"游戏结束时间：{end_time}\n"
+                )
+            else:
+                # 当只有一个玩家时，不输出胜利信息
+                summary_message += (
+                    f"游戏ID：{game_id}\n"
+                    f"游戏开始时间：{start_time}\n"
+                    f"游戏结束时间：{end_time}\n"
+                )
+        else:
+            summary_message += "无法获取玩家得分信息。\n"
+
+    return player_scores_message, summary_message
 
 def get_play_mode(mode_code: str) -> str:
     modes = {
