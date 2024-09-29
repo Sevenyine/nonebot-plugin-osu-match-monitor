@@ -1,7 +1,7 @@
 <div align="center">
-  <a href="https://v2.nonebot.dev/store"><img src="https://github.com/A-kirami/nonebot-plugin-osu-match-monitor/blob/resources/nbp_logo.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
-  <br>
-  <p><img src="https://github.com/A-kirami/nonebot-plugin-osu-match-monitor/blob/resources/NoneBotPlugin.svg" width="240" alt="NoneBotPluginText"></p>
+  <a href="https://v2.nonebot.dev/">
+    <img src="https://v2.nonebot.dev/logo.png" width="200" height="200" alt="nonebot">
+  </a>
 </div>
 
 <div align="center">
@@ -21,11 +21,11 @@ _✨ NoneBot osu! 比赛监控 ✨_
 
 </div>
 
-## 📖 介绍
+## 介绍
 
 这是一个监控 osu! 游戏比赛并自动将动态播报到 QQ 群内的插件。
 
-## 💿 安装
+## 安装
 
 使用 nb-cli 安装
 
@@ -54,7 +54,7 @@ _✨ NoneBot osu! 比赛监控 ✨_
 </details>
 </details>
 
-## ⚙️ 配置
+## 配置
 
 在 nonebot2 项目的`.env`文件中添加下表中的必填配置
 
@@ -63,7 +63,7 @@ _✨ NoneBot osu! 比赛监控 ✨_
 | osu_api_key | 是 | "" | str |
 | osu_refresh_interval | 否 | 2 | int |
 
-## 🎉 使用
+## 使用
 ### 指令表
 
 在使用时，请自行添加对应的指令前缀。
