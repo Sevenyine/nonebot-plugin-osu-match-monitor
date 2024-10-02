@@ -129,13 +129,23 @@ async def monitor_room(bot: Bot, session_id: str, room_id: str):
                         if not prev_game:
                             message = f"房间 {room_id} 的新比赛（ID: {game_id}）已开始！\n"
                             message += await format_game_info(game)
-                            await send_message(bot, session_id, message)
+                            try:
+                                await send_message(bot, session_id, message)
+                            except Exception as e:
+                                logger.error(f"发送比赛开始消息时发生异常：{e}")
+
                             # 发送封面图片
                             beatmap_id = game.get("beatmap_id", "")
                             if beatmap_id:
                                 cover_image = await get_beatmap_cover(beatmap_id)
                                 if cover_image:
-                                    await send_message(bot, session_id, MessageSegment.image(cover_image))
+                                    try:
+                                        await send_message(bot, session_id, MessageSegment.image(cover_image))
+                                    except Exception as e:
+                                        logger.error(f"发送封面图片时发生异常：{e}")
+                                        await send_message(bot, session_id, "发送封面图片时发生异常，请检查后台输出。")
+                                else:
+                                    await send_message(bot, session_id, "封面图获取失败，请检查后台输出。")
                             logger.info(f"房间 {room_id} 的新比赛（ID: {game_id}）已开始")
                         elif game != prev_game:
                             if game["end_time"] and not prev_game.get("end_time"):
@@ -153,14 +163,21 @@ async def monitor_room(bot: Bot, session_id: str, room_id: str):
                                     game_end_time
                                 )
 
-                                await send_message(bot, session_id, player_scores_message)
-                                await send_message(bot, session_id, summary_message)
+                                try:
+                                    await send_message(bot, session_id, player_scores_message)
+                                    await send_message(bot, session_id, summary_message)
+                                except Exception as e:
+                                    logger.error(f"发送比赛结果消息时发生异常：{e}")
                                 logger.info(f"房间 {room_id} 的比赛（ID: {game_id}）已结束")
                             else:
                                 message = f"房间 {room_id} 的比赛（ID: {game_id}）有新的更新。\n"
                                 message += await format_game_info(game)
-                                await send_message(bot, session_id, message)
+                                try:
+                                    await send_message(bot, session_id, message)
+                                except Exception as e:
+                                    logger.error(f"发送比赛更新消息时发生异常：{e}")
                                 logger.info(f"房间 {room_id} 的比赛（ID: {game_id}）有新的更新")
+                    # 在处理完所有游戏后，更新 previous_match_info
                     previous_match_info = new_match_info
                     monitoring_rooms[room_id] = new_match_info
             else:
