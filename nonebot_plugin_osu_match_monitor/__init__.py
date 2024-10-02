@@ -182,8 +182,11 @@ async def get_match_info(room_id: str) -> Dict:
             logger.debug(f"请求房间 {room_id} 的比赛信息，状态码：{response.status_code}")
             if response.status_code == 200:
                 data = response.json()
-                logger.debug(f"房间 {room_id} 的比赛信息：{data}")
-                return data
+                if isinstance(data, dict) and 'match' in data:
+                    logger.debug(f"房间 {room_id} 的比赛信息：{data}")
+                    return data
+                else:
+                    logger.error(f"API 返回的数据格式不正确：{data}")
             else:
                 logger.error(f"请求房间 {room_id} 信息失败，状态码：{response.status_code}")
     except Exception as e:
@@ -513,7 +516,10 @@ def convert_to_utc8(utc_time_str: str) -> str:
         return utc_time_str
 
 def calculate_accuracy(count50, count100, count300, countmiss, countkatu, countgeki, mode, score_v2=False):
-    mode = int(mode)
+    try:
+        mode = int(mode)
+    except ValueError:
+        mode = -1
     count50 = int(count50)
     count100 = int(count100)
     count300 = int(count300)
