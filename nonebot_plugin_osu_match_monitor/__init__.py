@@ -3,11 +3,11 @@ from typing import Dict, List, Tuple
 import httpx
 import logging
 from datetime import datetime, timedelta
-from nonebot import on_command
+from nonebot import on_command, get_plugin_config
 from nonebot.adapters.onebot.v11 import Bot, Event, Message, MessageSegment
 from nonebot.params import CommandArg
 from nonebot.plugin import PluginMetadata
-from .config import api_key, refresh_interval
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +19,14 @@ __plugin_meta__ = PluginMetadata(
 .osu match stopmonitor <房间ID>  停止监控指定房间
 """,
     type="application",
+    config=Config,
+    supported_adapters={"~onebot.v11"},
     homepage="https://github.com/Sevenyine/nonebot-plugin-osu-match-monitor",
 )
 
-API_KEY = api_key
-REFRESH_INTERVAL = refresh_interval
+plugin_config = get_plugin_config(Config)
+api_key = plugin_config.osu_api_key
+refresh_interval = plugin_config.osu_refresh_interval
 API_URL_MATCH = "https://osu.ppy.sh/api/get_match"
 API_URL_USER = "https://osu.ppy.sh/api/get_user"
 API_URL_BEATMAP = "https://osu.ppy.sh/api/get_beatmaps"
@@ -166,11 +169,11 @@ async def monitor_room(bot: Bot, event: Event, room_id: str):
                 break
         except Exception as e:
             logger.exception(f"监控房间 {room_id} 时发生异常：{e}")
-        await asyncio.sleep(REFRESH_INTERVAL)
+        await asyncio.sleep(refresh_interval)
 
 async def get_match_info(room_id: str) -> Dict:
     params = {
-        "k": API_KEY,
+        "k": api_key,
         "mp": room_id
     }
     try:
@@ -191,7 +194,7 @@ async def get_user_info(user_id: str) -> Dict:
     if user_id in user_cache:
         return user_cache[user_id]
     params = {
-        "k": API_KEY,
+        "k": api_key,
         "u": user_id,
         "type": "id"
     }
@@ -214,7 +217,7 @@ async def get_beatmap_info(beatmap_id: str) -> Dict:
     if beatmap_id in beatmap_cache:
         return beatmap_cache[beatmap_id]
     params = {
-        "k": API_KEY,
+        "k": api_key,
         "b": beatmap_id,
         "limit": 1
     }
