@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 import httpx
 import logging
 from datetime import datetime, timedelta
@@ -78,7 +78,8 @@ async def handle_monitor(bot: Bot, event: Event, args: Message = CommandArg()):
 
             monitoring_rooms[room_id] = match_info
             logger.info(f"开始监控房间 {room_id}")
-            asyncio.create_task(monitor_room(bot, event, room_id))
+            session_id = event.get_session_id()
+            asyncio.create_task(monitor_room(bot, session_id, room_id))
             return
     else:
         await monitor.finish("无法获取房间信息，请检查房间ID是否正确。")
@@ -96,7 +97,7 @@ async def handle_stop_monitor(args: Message = CommandArg()):
         await stop_monitor.send(f"未找到正在监控的房间 {room_id}。")
         logger.warning(f"试图停止未监控的房间 {room_id}")
 
-async def monitor_room(bot: Bot, event: Event, room_id: str):
+async def monitor_room(bot: Bot, session_id: str, room_id: str):
     logger.debug(f"进入房间 {room_id} 的监控循环")
     previous_match_info = None
     while room_id in monitoring_rooms:
@@ -109,13 +110,13 @@ async def monitor_room(bot: Bot, event: Event, room_id: str):
                 else:
                     # 检查房间是否关闭
                     if new_match_info["match"].get("end_time") and not previous_match_info["match"].get("end_time"):
-                        await bot.send(event, f"房间 {room_id} 已关闭，停止监控。")
+                        await send_message(bot, session_id, f"房间 {room_id} 已关闭，停止监控。")
                         monitoring_rooms.pop(room_id, None)
                         logger.info(f"房间 {room_id} 已关闭，停止监控")
                         break
 
                     if new_match_info["match"] != previous_match_info.get("match"):
-                        await bot.send(event, f"房间 {room_id} 信息更新：\n{format_match_info(new_match_info['match'])}")
+                        await send_message(bot, session_id, f"房间 {room_id} 信息更新：\n{format_match_info(new_match_info['match'])}")
                         logger.info(f"房间 {room_id} 信息更新")
 
                     previous_games = previous_match_info.get("games", [])
@@ -128,13 +129,13 @@ async def monitor_room(bot: Bot, event: Event, room_id: str):
                         if not prev_game:
                             message = f"房间 {room_id} 的新比赛（ID: {game_id}）已开始！\n"
                             message += await format_game_info(game)
-                            await bot.send(event, message)
+                            await send_message(bot, session_id, message)
                             # 发送封面图片
                             beatmap_id = game.get("beatmap_id", "")
                             if beatmap_id:
                                 cover_image = await get_beatmap_cover(beatmap_id)
                                 if cover_image:
-                                    await bot.send(event, MessageSegment.image(cover_image))
+                                    await send_message(bot, session_id, MessageSegment.image(cover_image))
                             logger.info(f"房间 {room_id} 的新比赛（ID: {game_id}）已开始")
                         elif game != prev_game:
                             if game["end_time"] and not prev_game.get("end_time"):
@@ -152,24 +153,32 @@ async def monitor_room(bot: Bot, event: Event, room_id: str):
                                     game_end_time
                                 )
 
-                                await bot.send(event, player_scores_message)
-                                await bot.send(event, summary_message)
+                                await send_message(bot, session_id, player_scores_message)
+                                await send_message(bot, session_id, summary_message)
                                 logger.info(f"房间 {room_id} 的比赛（ID: {game_id}）已结束")
                             else:
                                 message = f"房间 {room_id} 的比赛（ID: {game_id}）有新的更新。\n"
                                 message += await format_game_info(game)
-                                await bot.send(event, message)
+                                await send_message(bot, session_id, message)
                                 logger.info(f"房间 {room_id} 的比赛（ID: {game_id}）有新的更新")
                     previous_match_info = new_match_info
                     monitoring_rooms[room_id] = new_match_info
             else:
-                await bot.send(event, f"无法获取房间 {room_id} 的信息，停止监控。")
+                await send_message(bot, session_id, f"无法获取房间 {room_id} 的信息，停止监控。")
                 monitoring_rooms.pop(room_id, None)
                 logger.error(f"无法获取房间 {room_id} 的信息，停止监控")
                 break
         except Exception as e:
             logger.exception(f"监控房间 {room_id} 时发生异常：{e}")
         await asyncio.sleep(refresh_interval)
+
+async def send_message(bot: Bot, session_id: str, message: Union[str, Message, MessageSegment]):
+    if session_id.startswith("group_"):
+        group_id = int(session_id.split("_")[1])
+        await bot.send_group_msg(group_id=group_id, message=message)
+    elif session_id.startswith("private_"):
+        user_id = int(session_id.split("_")[1])
+        await bot.send_private_msg(user_id=user_id, message=message)
 
 async def get_match_info(room_id: str) -> Dict:
     params = {
@@ -306,7 +315,7 @@ async def format_scores(
         countgeki = score.get("countgeki", "0")  # 300+ 或 osu!catch 的 caught droplets
         perfect = score.get("perfect", "0")
         pass_status = score.get("pass", "0")
-        enabled_mods = get_mods(score.get("enabled_mods", "0"))
+        enabled_mods = get_mods(score.get("enabled_mods") or "0")
         play_mode = play_mode_code
         score_v2 = "ScoreV2" in enabled_mods
 
