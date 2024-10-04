@@ -36,7 +36,7 @@ user_cache: Dict[str, Dict] = {}
 beatmap_cache: Dict[str, Dict] = {}
 
 monitor = on_command("osu match monitor", aliases={"osumonitor"}, priority=5)
-stop_monitor = on_command("osu match stop", aliases={"osustopmonitor"}, priority=5)
+stop_monitor = on_command("osu match stopmonitor", aliases={"osustopmonitor"}, priority=5)
 
 @monitor.handle()
 async def handle_monitor(bot: Bot, event: Event, args: Message = CommandArg()):
