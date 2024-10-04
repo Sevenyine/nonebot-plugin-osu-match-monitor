@@ -79,7 +79,7 @@ Welcome to osu! <img src="https://github.com/ppy/osu/blob/master/assets/lazer.pn
 | 指令 | 权限 | 需要@ | 范围 | 说明 |
 |:-----:|:----:|:----:|:----:|:----:|
 | osu match monitor \<id\> | 群员 | 否 | 群聊+私聊 | 开始监控比赛 |
-| osu match stop \<id\> | 群员 | 否 | 群聊+私聊 | 停止监控比赛 |
+| osu match stopmonitor \<id\> | 群员 | 否 | 群聊+私聊 | 停止监控比赛 |
 
 #### 如何获取 Match ID?
 
