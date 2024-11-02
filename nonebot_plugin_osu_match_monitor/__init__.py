@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 __plugin_meta__ = PluginMetadata(
     name="osu! Match Monitor",
-    description="A NoneBot2 plugin used to monitor osu! match activities using match id",
+    description="一个监控osu!多人游戏房间动态的插件",
     usage="""
 .osu match monitor <房间ID>  开始监控指定房间
 .osu match stopmonitor <房间ID>  停止监控指定房间
