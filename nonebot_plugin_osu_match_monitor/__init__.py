@@ -27,6 +27,7 @@ __plugin_meta__ = PluginMetadata(
 plugin_config = get_plugin_config(Config)
 api_key = plugin_config.osu_api_key
 refresh_interval = plugin_config.osu_refresh_interval
+api_timeout = plugin_config.osu_api_timeout
 API_URL_MATCH = "https://osu.ppy.sh/api/get_match"
 API_URL_USER = "https://osu.ppy.sh/api/get_user"
 API_URL_BEATMAP = "https://osu.ppy.sh/api/get_beatmaps"
@@ -203,7 +204,7 @@ async def get_match_info(room_id: str) -> Dict:
         "mp": room_id
     }
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=api_timeout) as client:
             response = await client.get(API_URL_MATCH, params=params)
             logger.debug(f"请求房间 {room_id} 的比赛信息，状态码：{response.status_code}")
             if response.status_code == 200:
@@ -228,7 +229,7 @@ async def get_user_info(user_id: str) -> Dict:
         "type": "id"
     }
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=api_timeout) as client:
             response = await client.get(API_URL_USER, params=params)
             if response.status_code == 200:
                 data = response.json()
@@ -251,7 +252,7 @@ async def get_beatmap_info(beatmap_id: str) -> Dict:
         "limit": 1
     }
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=api_timeout) as client:
             response = await client.get(API_URL_BEATMAP, params=params)
             if response.status_code == 200:
                 data = response.json()

@@ -17,6 +17,10 @@
 <a href="https://pypi.python.org/pypi/nonebot-plugin-osu-match-monitor">
     <img src="https://img.shields.io/pypi/v/nonebot-plugin-osu-match-monitor.svg" alt="pypi">
 </a>
+<a href="https://www.codefactor.io/repository/github/sevenyine/nonebot-plugin-osu-match-monitor">
+    <img src="https://www.codefactor.io/repository/github/sevenyine/nonebot-plugin-osu-match-monitor/badge" alt="CodeFactor" /></a>
+
+![GitHub Release](https://img.shields.io/github/v/release/Sevenyine/nonebot-plugin-osu-match-monitor)
 <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="python">
 
 </div>
@@ -64,6 +68,7 @@ Welcome to osu! <img src="https://github.com/ppy/osu/blob/master/assets/lazer.pn
 |:-----:|:----:|:----:|:----:|
 | osu_api_key | 是 | "" | str |
 | osu_refresh_interval | 否 | 2 | int |
+| osu_api_timeout | 否 | 5 | int |
 
 ### 如何获取 osu! API Key？
 
